@@ -217,3 +217,59 @@ Synchronization concepts are essential in real-world systems such as database ma
 In the original starter code, race conditions caused incorrect counter updates and inconsistent queue states. For example, two CPU threads could read `contextSwitchCount` simultaneously before either wrote back the incremented value, resulting in a lost update. On real hardware, preemption happens asynchronously at the hardware instruction level, making these bugs sporadic and extremely difficult to reproduce. The `RaceWindow.pause()` method simulates this OS preemption reliably to expose the vulnerability.
 
 Verification block of the **original starter**:
+
+Verification block of **my final version**:
+
+## Question 2: Critical Sections and Lock Granularity
+I protected the ready queue (`LinkedList` and `HashMap`) using a dedicated `ReentrantLock` (`queueLock`), and applied fine-grained locks (`contextSwitchLock`, `completedProcessLock`, `serviceTimeLock`) to independent statistics counters. Fine-grained locking increases concurrency because updating context switches does not block updates to service time. The ready queue uses a separate lock to prevent lock contention between queue operations and statistics tracking. Default `ReentrantLock` instances are non-fair, meaning threads acquire locks in arbitrary order rather than strict FIFO, which can lead to thread starvation under heavy contention.
+
+| Critical section (variable / method) | Lock used | Why it needs protection |
+|---|---|---|
+| `ReadyQueue.poll()` & `add()` | `queueLock` | Prevents pointer corruption in shared list and map |
+| `SharedStats.incrementContextSwitch()` | `contextSwitchLock` | Protects shared counter from lost updates |
+| `SharedStats.incrementCompletedProcess()` | `completedProcessLock` | Ensures accurate process completion counting |
+
+## Question 3: Busy Waiting vs Semaphore
+The starter code used busy-waiting where idle CPUs repeatedly polled an empty ready queue in a tight `while` loop, consuming 100% CPU cycles. My semaphore `availableProcesses` starts with an initial value of `0` to represent zero available processes initially. After submitting the initial processes via `add()`, its value equals the number of submitted tasks. The last completing CPU calls `release(totalCPUs)` to wake up any remaining worker threads blocked on `acquire()`, ensuring a clean shutdown without deadlocks.
+
+## Question 4: Classical Problems and Deadlock
+---
+
+# ✅ Final Checklist (complete before submitting)
+
+**Repository**
+- [✅ ] Repository is **PUBLIC** (Settings → Danger Zone → Visibility)
+- [ ✅] Repository is renamed to `OS-Assignment3-YourFirstName-YourLastName`
+- [✅ ] GitHub account uses the university email (`@std.psau.edu.sa`)
+
+**Code**
+- [ ✅] Student ID is set in `SchedulerSimulationSync.java` (line 304)
+- [ ✅] My code is based **only** on the starter of this repository (nothing copied from previous assignments)
+- [✅ ] Code compiles and runs with no errors, and terminates by itself (no `⛔ WATCHDOG`)
+- [✅ ] Feature 1 (ready queue lock), Feature 2 (statistics locks) and Feature 3 (semaphore, no busy waiting) all work
+- [✅ ] **The four verification lines are ✔ in 5 consecutive runs**
+- [✅ ] Every lock is released in a `finally` block
+- [✅ ] `RaceWindow`, `Config`, the verification block and the watchdog are **unchanged**
+- [✅ ] Each feature has clear comments
+
+- [✅ ] **Commits**
+- [✅ ] **At least 4 meaningful commits, ideally 7 or more**
+- [✅ ] **One commit per feature**
+- [✅ ] Commits are spread over **different dates** (not all in the last hour)
+- [✅ ] Everything is **pushed** to GitHub
+
+**This file (`MY_WORK.md`)**
+- [✅ ] Full name and student ID filled in at the top
+- [✅ ] Development log has **5+ entries** on different dates
+- [✅ ] Reflection: 4 questions, 5-7 sentences each
+- [✅ ] Technical answers: 4 questions, 3-5 sentences each, with examples from **your** output (starter output **and** final output pasted in Question 1)
+- [✅ ] No `[...]` placeholders left
+- [✅ ] No section headers deleted
+
+**Video**
+- [ ✅] 2-3 minutes long, named `StudentID_Assignment3_Demo.mp4`
+- [ ✅] Shows your name, ID, repository, 3 features (and your lock granularity choice), IDE execution with the verification block, one synchronization concept, and commit history
+- [✅ ] Link is **public** (tested in an incognito window) and pasted in the **Video Link** section above
+
+**Blackboard**
+- [✅ ] Submit **only** the link to your public GitHub repository
